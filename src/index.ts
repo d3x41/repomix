@@ -10,7 +10,7 @@ export { sortPaths } from './core/file/filePathSort.js';
 export { processFiles } from './core/file/fileProcess.js';
 export { searchFiles } from './core/file/fileSearch.js';
 export type { FileSearchResult } from './core/file/fileSearch.js';
-export { generateFileTree } from './core/file/fileTreeGenerate.js';
+export { generateFileTree, generateTreeString, treeToString, type TreeNode } from './core/file/fileTreeGenerate.js';
 
 // Git
 export { isValidRemoteValue, isValidShorthand, parseRemoteValue } from './core/git/gitRemoteParse.js';

@@ -4,7 +4,7 @@ import { collectFiles } from './file/fileCollect.js';
 import { sortPaths } from './file/filePathSort.js';
 import { processFiles } from './file/fileProcess.js';
 import { searchFiles } from './file/fileSearch.js';
-import type { RawFile } from './file/fileTypes.js';
+import type { ProcessedFile, RawFile } from './file/fileTypes.js';
 import { GitDiffResult, getGitDiffs } from './git/gitDiffHandle.js';
 import { calculateMetrics } from './metrics/calculateMetrics.js';
 import { generateOutput } from './output/outputGenerate.js';
@@ -22,6 +22,8 @@ export interface PackResult {
   gitDiffTokenCount: number;
   suspiciousFilesResults: SuspiciousFileResult[];
   suspiciousGitDiffResults: SuspiciousFileResult[];
+  processedFiles: ProcessedFile[];
+  safeFilePaths: string[];
 }
 
 const defaultDeps = {
@@ -105,6 +107,8 @@ export const pack = async (
     ...metrics,
     suspiciousFilesResults,
     suspiciousGitDiffResults,
+    processedFiles,
+    safeFilePaths,
   };
 
   return result;

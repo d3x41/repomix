@@ -93,60 +93,97 @@ MCP 서버로 실행할 때 Repomix는 다음 도구를 제공합니다:
 
 ### pack_codebase
 
-이 도구는 로컬 코드 디렉토리를 AI 분석용 통합 파일로 패키징합니다.
+이 도구는 로컬 코드 디렉토리를 AI 분석용 XML 파일로 패키징합니다. 코드베이스 구조를 분석하고 관련 코드 내용을 추출하여 메트릭, 파일 트리, 포맷된 코드 내용을 포함한 포괄적인 보고서를 생성합니다.
 
 **매개변수:**
 - `directory`: (필수) 패키징할 디렉토리의 절대 경로
-- `compress`: (선택, 기본값: true) 토큰 수를 줄이기 위해 지능형 코드 추출을 수행할지 여부
-- `includePatterns`: (선택) 쉼표로 구분된 포함 패턴 목록
-- `ignorePatterns`: (선택) 쉼표로 구분된 제외 패턴 목록
+- `compress`: (선택, 기본값: false) 구현 세부사항을 제거하면서 필수 코드 시그니처와 구조를 추출하는 Tree-sitter 압축을 활성화합니다. 의미론적 의미를 유지하면서 토큰 사용량을 ~70% 줄입니다. grep_repomix_output이 점진적 콘텐츠 검색을 가능하게 하므로 일반적으로 필요하지 않습니다. 대형 저장소의 전체 코드베이스 내용이 특별히 필요한 경우에만 사용하세요.
+- `includePatterns`: (선택) fast-glob 패턴을 사용하여 포함할 파일을 지정합니다. 여러 패턴은 쉼표로 구분할 수 있습니다(예: "**/*.{js,ts}", "src/**,docs/**"). 일치하는 파일만 처리됩니다.
+- `ignorePatterns`: (선택) fast-glob 패턴을 사용하여 제외할 추가 파일을 지정합니다. 여러 패턴은 쉼표로 구분할 수 있습니다(예: "test/**,*.spec.js", "node_modules/**,dist/**"). 이러한 패턴은 .gitignore와 내장 제외를 보완합니다.
+- `topFilesLength`: (선택, 기본값: 10) 코드베이스 분석을 위한 메트릭 요약에 표시할 크기별 최대 파일 수입니다.
 
 **예시:**
 ```json
 {
   "directory": "/path/to/your/project",
-  "compress": true,
+  "compress": false,
   "includePatterns": "src/**/*.ts,**/*.md",
-  "ignorePatterns": "**/*.log,tmp/"
+  "ignorePatterns": "**/*.log,tmp/",
+  "topFilesLength": 10
 }
 ```
 
 ### pack_remote_repository
 
-이 도구는 GitHub 저장소를 가져와 클론하고 AI 분석용 통합 파일로 패키징합니다.
+이 도구는 GitHub 저장소를 가져와 클론하고 AI 분석용 XML 파일로 패키징합니다. 원격 저장소를 자동으로 클론하고 구조를 분석하여 포괄적인 보고서를 생성합니다.
 
 **매개변수:**
-- `remote`: (필수) GitHub 저장소 URL 또는 사용자/저장소 형식(예: yamadashy/repomix)
-- `compress`: (선택, 기본값: true) 토큰 수를 줄이기 위해 지능형 코드 추출을 수행할지 여부
-- `includePatterns`: (선택) 쉼표로 구분된 포함 패턴 목록
-- `ignorePatterns`: (선택) 쉼표로 구분된 제외 패턴 목록
+- `remote`: (필수) GitHub 저장소 URL 또는 사용자/저장소 형식(예: "yamadashy/repomix", "https://github.com/user/repo", 또는 "https://github.com/user/repo/tree/branch")
+- `compress`: (선택, 기본값: false) 구현 세부사항을 제거하면서 필수 코드 시그니처와 구조를 추출하는 Tree-sitter 압축을 활성화합니다. 의미론적 의미를 유지하면서 토큰 사용량을 ~70% 줄입니다. grep_repomix_output이 점진적 콘텐츠 검색을 가능하게 하므로 일반적으로 필요하지 않습니다. 대형 저장소의 전체 코드베이스 내용이 특별히 필요한 경우에만 사용하세요.
+- `includePatterns`: (선택) fast-glob 패턴을 사용하여 포함할 파일을 지정합니다. 여러 패턴은 쉼표로 구분할 수 있습니다(예: "**/*.{js,ts}", "src/**,docs/**"). 일치하는 파일만 처리됩니다.
+- `ignorePatterns`: (선택) fast-glob 패턴을 사용하여 제외할 추가 파일을 지정합니다. 여러 패턴은 쉼표로 구분할 수 있습니다(예: "test/**,*.spec.js", "node_modules/**,dist/**"). 이러한 패턴은 .gitignore와 내장 제외를 보완합니다.
+- `topFilesLength`: (선택, 기본값: 10) 코드베이스 분석을 위한 메트릭 요약에 표시할 크기별 최대 파일 수입니다.
 
 **예시:**
 ```json
 {
   "remote": "yamadashy/repomix",
-  "compress": true,
+  "compress": false,
   "includePatterns": "src/**/*.ts,**/*.md",
-  "ignorePatterns": "**/*.log,tmp/"
+  "ignorePatterns": "**/*.log,tmp/",
+  "topFilesLength": 10
 }
 ```
 
 ### read_repomix_output
 
-이 도구는 직접 파일 접근이 불가능한 환경에서 Repomix 출력 파일의 내용을 읽습니다.
+이 도구는 Repomix에서 생성된 출력 파일의 내용을 읽습니다. 대용량 파일에 대한 라인 범위 지정을 통한 부분 읽기를 지원합니다. 이 도구는 직접 파일 시스템 접근이 제한된 환경을 위해 설계되었습니다.
 
 **매개변수:**
 - `outputId`: (필수) 읽을 Repomix 출력 파일의 ID
+- `startLine`: (선택) 시작 라인 번호(1부터 시작, 포함). 지정하지 않으면 처음부터 읽습니다.
+- `endLine`: (선택) 끝 라인 번호(1부터 시작, 포함). 지정하지 않으면 끝까지 읽습니다.
 
 **기능:**
 - 웹 기반 환경이나 샌드박스 애플리케이션을 위해 특별히 설계됨
 - ID를 사용하여 이전에 생성된 출력의 내용을 검색
 - 파일 시스템 접근 없이 패키징된 코드베이스에 안전하게 접근 제공
+- 대용량 파일의 부분 읽기 지원
 
 **예시:**
 ```json
 {
-  "outputId": "8f7d3b1e2a9c6054"
+  "outputId": "8f7d3b1e2a9c6054",
+  "startLine": 100,
+  "endLine": 200
+}
+```
+
+### grep_repomix_output
+
+이 도구는 JavaScript RegExp 구문을 사용한 grep 유사 기능으로 Repomix 출력 파일에서 패턴을 검색합니다. 일치하는 라인과 일치 항목 주변의 선택적 컨텍스트 라인을 반환합니다.
+
+**매개변수:**
+- `outputId`: (필수) 검색할 Repomix 출력 파일의 ID
+- `pattern`: (필수) 검색 패턴(JavaScript RegExp 정규 표현식 구문)
+- `contextLines`: (선택, 기본값: 0) 각 일치 항목 전후에 표시할 컨텍스트 라인 수. beforeLines/afterLines가 지정되면 재정의됩니다.
+- `beforeLines`: (선택) 각 일치 항목 전에 표시할 컨텍스트 라인 수(grep -B와 같음). contextLines보다 우선합니다.
+- `afterLines`: (선택) 각 일치 항목 후에 표시할 컨텍스트 라인 수(grep -A와 같음). contextLines보다 우선합니다.
+- `ignoreCase`: (선택, 기본값: false) 대소문자를 구분하지 않는 매칭 수행
+
+**기능:**
+- 강력한 패턴 매칭을 위한 JavaScript RegExp 구문 사용
+- 일치 항목의 더 나은 이해를 위한 컨텍스트 라인 지원
+- 전/후 컨텍스트 라인의 별도 제어 허용
+- 대소문자 구분/비구분 검색 옵션
+
+**예시:**
+```json
+{
+  "outputId": "8f7d3b1e2a9c6054",
+  "pattern": "function\\s+\\w+\\(",
+  "contextLines": 3,
+  "ignoreCase": false
 }
 ```
 
@@ -155,16 +192,20 @@ MCP 서버로 실행할 때 Repomix는 다음 도구를 제공합니다:
 Repomix의 MCP 서버는 AI 어시스턴트가 로컬 파일 시스템과 안전하게 상호 작용할 수 있는 두 가지 파일 시스템 도구를 제공합니다:
 
 1. `file_system_read_file`
-  - 절대 경로를 사용하여 파일 내용 읽기
+  - 절대 경로를 사용하여 로컬 파일 시스템에서 파일 내용 읽기
+  - 민감한 정보가 포함된 파일에 대한 접근을 감지하고 방지하는 내장 보안 검증 포함
   - [Secretlint](https://github.com/secretlint/secretlint)를 사용한 보안 검증 구현
-  - 민감한 정보가 포함된 파일에 대한 접근 방지
+  - 민감한 정보가 포함된 파일(API 키, 비밀번호, 시크릿)에 대한 접근 방지
+  - 디렉토리 순회 공격을 방지하기 위한 절대 경로 검증
   - 잘못된 경로나 보안 문제에 대한 명확한 오류 메시지 반환
 
 2. `file_system_read_directory`
-  - 절대 경로를 사용하여 디렉토리 내용 나열
+  - 절대 경로를 사용하여 디렉토리의 내용 나열
+  - 파일과 하위 디렉토리를 명확한 지표로 표시하는 포맷된 목록 반환
   - 파일과 디렉토리를 명확한 지표(`[FILE]` 또는 `[DIR]`)로 표시
   - 안전한 디렉토리 탐색과 적절한 오류 처리 제공
   - 경로 검증 및 절대 경로 확인
+  - 프로젝트 구조 탐색과 코드베이스 조직 이해에 유용
 
 두 도구 모두 강력한 보안 조치를 포함하고 있습니다:
 - 디렉토리 순회 공격을 방지하기 위한 절대 경로 검증

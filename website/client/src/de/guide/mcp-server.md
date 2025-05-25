@@ -93,41 +93,97 @@ Wenn Repomix als MCP-Server ausgeführt wird, stellt es die folgenden Tools bere
 
 ### pack_codebase
 
-Dieses Tool verpackt ein lokales Code-Verzeichnis in eine konsolidierte Datei für die KI-Analyse.
+Dieses Tool verpackt ein lokales Code-Verzeichnis in eine XML-Datei für die KI-Analyse. Es analysiert die Codebase-Struktur, extrahiert relevanten Code-Inhalt und generiert einen umfassenden Bericht mit Metriken, Dateibaum und formatiertem Code-Inhalt.
 
 **Parameter:**
 - `directory`: (Erforderlich) Absoluter Pfad zum zu verpackenden Verzeichnis
-- `compress`: (Optional, Standard: true) Ob eine intelligente Code-Extraktion durchgeführt werden soll, um die Token-Anzahl zu reduzieren
-- `includePatterns`: (Optional) Kommagetrennte Liste von Einschlussmuster
-- `ignorePatterns`: (Optional) Kommagetrennte Liste von Ausschlussmuster
+- `compress`: (Optional, Standard: false) Aktiviert Tree-sitter-Komprimierung zur Extraktion wesentlicher Code-Signaturen und -Strukturen bei gleichzeitiger Entfernung von Implementierungsdetails. Reduziert die Token-Nutzung um ~70% bei Beibehaltung der semantischen Bedeutung. Normalerweise nicht erforderlich, da grep_repomix_output inkrementelle Inhaltsabrufung ermöglicht. Verwenden Sie dies nur, wenn Sie speziell den gesamten Codebase-Inhalt für große Repositories benötigen.
+- `includePatterns`: (Optional) Spezifiziert Dateien zum Einschließen mit fast-glob-Mustern. Mehrere Muster können durch Kommas getrennt werden (z.B. "**/*.{js,ts}", "src/**,docs/**"). Nur übereinstimmende Dateien werden verarbeitet.
+- `ignorePatterns`: (Optional) Spezifiziert zusätzliche Dateien zum Ausschließen mit fast-glob-Mustern. Mehrere Muster können durch Kommas getrennt werden (z.B. "test/**,*.spec.js", "node_modules/**,dist/**"). Diese Muster ergänzen .gitignore und eingebaute Ausschlüsse.
+- `topFilesLength`: (Optional, Standard: 10) Anzahl der größten Dateien nach Größe, die in der Metrik-Zusammenfassung für die Codebase-Analyse angezeigt werden.
 
 **Beispiel:**
 ```json
 {
   "directory": "/path/to/your/project",
-  "compress": true,
+  "compress": false,
   "includePatterns": "src/**/*.ts,**/*.md",
-  "ignorePatterns": "**/*.log,tmp/"
+  "ignorePatterns": "**/*.log,tmp/",
+  "topFilesLength": 10
 }
 ```
 
 ### pack_remote_repository
 
-Dieses Tool holt, klont und verpackt ein GitHub-Repository in eine konsolidierte Datei für die KI-Analyse.
+Dieses Tool holt, klont und verpackt ein GitHub-Repository in eine XML-Datei für die KI-Analyse. Es klont automatisch das entfernte Repository, analysiert seine Struktur und generiert einen umfassenden Bericht.
 
 **Parameter:**
-- `remote`: (Erforderlich) GitHub-Repository-URL oder user/repo-Format (z.B. yamadashy/repomix)
-- `compress`: (Optional, Standard: true) Ob eine intelligente Code-Extraktion durchgeführt werden soll, um die Token-Anzahl zu reduzieren
-- `includePatterns`: (Optional) Kommagetrennte Liste von Einschlussmuster
-- `ignorePatterns`: (Optional) Kommagetrennte Liste von Ausschlussmuster
+- `remote`: (Erforderlich) GitHub-Repository-URL oder user/repo-Format (z.B. "yamadashy/repomix", "https://github.com/user/repo", oder "https://github.com/user/repo/tree/branch")
+- `compress`: (Optional, Standard: false) Aktiviert Tree-sitter-Komprimierung zur Extraktion wesentlicher Code-Signaturen und -Strukturen bei gleichzeitiger Entfernung von Implementierungsdetails. Reduziert die Token-Nutzung um ~70% bei Beibehaltung der semantischen Bedeutung. Normalerweise nicht erforderlich, da grep_repomix_output inkrementelle Inhaltsabrufung ermöglicht. Verwenden Sie dies nur, wenn Sie speziell den gesamten Codebase-Inhalt für große Repositories benötigen.
+- `includePatterns`: (Optional) Spezifiziert Dateien zum Einschließen mit fast-glob-Mustern. Mehrere Muster können durch Kommas getrennt werden (z.B. "**/*.{js,ts}", "src/**,docs/**"). Nur übereinstimmende Dateien werden verarbeitet.
+- `ignorePatterns`: (Optional) Spezifiziert zusätzliche Dateien zum Ausschließen mit fast-glob-Mustern. Mehrere Muster können durch Kommas getrennt werden (z.B. "test/**,*.spec.js", "node_modules/**,dist/**"). Diese Muster ergänzen .gitignore und eingebaute Ausschlüsse.
+- `topFilesLength`: (Optional, Standard: 10) Anzahl der größten Dateien nach Größe, die in der Metrik-Zusammenfassung für die Codebase-Analyse angezeigt werden.
 
 **Beispiel:**
 ```json
 {
   "remote": "yamadashy/repomix",
-  "compress": true,
+  "compress": false,
   "includePatterns": "src/**/*.ts,**/*.md",
-  "ignorePatterns": "**/*.log,tmp/"
+  "ignorePatterns": "**/*.log,tmp/",
+  "topFilesLength": 10
+}
+```
+
+### read_repomix_output
+
+Dieses Tool liest den Inhalt einer von Repomix generierten Ausgabedatei. Es unterstützt partielles Lesen mit Zeilenbereichen für große Dateien. Dieses Tool ist für Umgebungen konzipiert, in denen der direkte Dateisystemzugriff eingeschränkt ist.
+
+**Parameter:**
+- `outputId`: (Erforderlich) ID der zu lesenden Repomix-Ausgabedatei
+- `startLine`: (Optional) Startzeilennummer (1-basiert, inklusive). Wenn nicht angegeben, wird vom Anfang gelesen.
+- `endLine`: (Optional) Endzeilennummer (1-basiert, inklusive). Wenn nicht angegeben, wird bis zum Ende gelesen.
+
+**Funktionen:**
+- Speziell für webbasierte Umgebungen oder Sandbox-Anwendungen entwickelt
+- Ruft den Inhalt zuvor generierter Ausgaben über ihre ID ab
+- Bietet sicheren Zugriff auf verpackte Codebase ohne Dateisystemzugriff
+- Unterstützt partielles Lesen für große Dateien
+
+**Beispiel:**
+```json
+{
+  "outputId": "8f7d3b1e2a9c6054",
+  "startLine": 100,
+  "endLine": 200
+}
+```
+
+### grep_repomix_output
+
+Dieses Tool durchsucht Muster in einer Repomix-Ausgabedatei mit grep-ähnlicher Funktionalität unter Verwendung der JavaScript RegExp-Syntax. Es gibt übereinstimmende Zeilen mit optionalen Kontextzeilen um die Übereinstimmungen zurück.
+
+**Parameter:**
+- `outputId`: (Erforderlich) ID der zu durchsuchenden Repomix-Ausgabedatei
+- `pattern`: (Erforderlich) Suchmuster (JavaScript RegExp-Syntax für reguläre Ausdrücke)
+- `contextLines`: (Optional, Standard: 0) Anzahl der Kontextzeilen, die vor und nach jeder Übereinstimmung angezeigt werden. Wird von beforeLines/afterLines überschrieben, wenn angegeben.
+- `beforeLines`: (Optional) Anzahl der Kontextzeilen, die vor jeder Übereinstimmung angezeigt werden (wie grep -B). Hat Vorrang vor contextLines.
+- `afterLines`: (Optional) Anzahl der Kontextzeilen, die nach jeder Übereinstimmung angezeigt werden (wie grep -A). Hat Vorrang vor contextLines.
+- `ignoreCase`: (Optional, Standard: false) Führt groß-/kleinschreibungsunabhängige Übereinstimmung durch
+
+**Funktionen:**
+- Verwendet JavaScript RegExp-Syntax für leistungsstarke Musterübereinstimmung
+- Unterstützt Kontextzeilen für besseres Verständnis der Übereinstimmungen
+- Ermöglicht separate Kontrolle von Vor-/Nach-Kontextzeilen
+- Groß-/kleinschreibungsabhängige und -unabhängige Suchoptionen
+
+**Beispiel:**
+```json
+{
+  "outputId": "8f7d3b1e2a9c6054",
+  "pattern": "function\\s+\\w+\\(",
+  "contextLines": 3,
+  "ignoreCase": false
 }
 ```
 
@@ -136,16 +192,20 @@ Dieses Tool holt, klont und verpackt ein GitHub-Repository in eine konsolidierte
 Der Repomix MCP-Server bietet zwei Dateisystemwerkzeuge, die es KI-Assistenten ermöglichen, sicher mit dem lokalen Dateisystem zu interagieren:
 
 1. `file_system_read_file`
-  - Liest Dateiinhalte unter Verwendung absoluter Pfade
+  - Liest Dateiinhalte aus dem lokalen Dateisystem unter Verwendung absoluter Pfade
+  - Beinhaltet eingebaute Sicherheitsvalidierung zur Erkennung und Verhinderung des Zugriffs auf Dateien mit sensiblen Informationen
   - Implementiert Sicherheitsvalidierung mit [Secretlint](https://github.com/secretlint/secretlint)
-  - Verhindert den Zugriff auf Dateien mit sensiblen Informationen
+  - Verhindert den Zugriff auf Dateien mit sensiblen Informationen (API-Schlüssel, Passwörter, Geheimnisse)
+  - Validiert absolute Pfade zur Verhinderung von Directory Traversal-Angriffen
   - Liefert klare Fehlermeldungen für ungültige Pfade und Sicherheitsprobleme
 
 2. `file_system_read_directory`
-  - Listet Verzeichnisinhalte unter Verwendung absoluter Pfade
+  - Listet den Inhalt eines Verzeichnisses unter Verwendung eines absoluten Pfads
+  - Gibt eine formatierte Liste zurück, die Dateien und Unterverzeichnisse mit klaren Indikatoren zeigt
   - Zeigt Dateien und Verzeichnisse mit klaren Indikatoren (`[FILE]` oder `[DIR]`)
   - Bietet sichere Verzeichnisnavigation mit angemessener Fehlerbehandlung
   - Validiert Pfade und stellt sicher, dass sie absolut sind
+  - Nützlich für die Erkundung der Projektstruktur und das Verständnis der Codebase-Organisation
 
 Beide Werkzeuge beinhalten robuste Sicherheitsmaßnahmen:
 - Validierung absoluter Pfade zur Verhinderung von Directory Traversal-Angriffen
@@ -167,7 +227,7 @@ const dirContent = await tools.file_system_read_directory({
 ```
 
 Diese Werkzeuge sind besonders nützlich, wenn KI-Assistenten:
-- Bestimmte Dateien im Codebase analysieren müssen
+- Bestimmte Dateien in der Codebase analysieren müssen
 - Verzeichnisstrukturen navigieren müssen
 - Existenz und Zugänglichkeit von Dateien überprüfen müssen
 - Sichere Dateisystemoperationen gewährleisten müssen

@@ -93,83 +93,124 @@ repomix --mcp
 
 ### pack_codebase
 
-此工具将本地代码目录打包成一个用于 AI 分析的整合文件。
+此工具将本地代码目录打包成一个用于 AI 分析的 XML 文件。它分析代码库结构，提取相关代码内容，并生成包含指标、文件树和格式化代码内容的综合报告。
 
 **参数：**
 - `directory`：（必需）要打包的目录的绝对路径
-- `compress`：（可选，默认值：true）是否执行智能代码提取以减少令牌计数
-- `includePatterns`：（可选）以逗号分隔的包含模式列表
-- `ignorePatterns`：（可选）以逗号分隔的忽略模式列表
+- `compress`：（可选，默认值：false）启用 Tree-sitter 压缩以提取基本代码签名和结构，同时删除实现细节。在保持语义含义的同时减少约 70% 的令牌使用量。由于 grep_repomix_output 允许增量内容检索，通常不需要。仅在您特别需要大型仓库的整个代码库内容时使用。
+- `includePatterns`：（可选）使用 fast-glob 模式指定要包含的文件。多个模式可以用逗号分隔（例如，"**/*.{js,ts}", "src/**,docs/**"）。只有匹配的文件会被处理。
+- `ignorePatterns`：（可选）使用 fast-glob 模式指定要排除的其他文件。多个模式可以用逗号分隔（例如，"test/**,*.spec.js", "node_modules/**,dist/**"）。这些模式补充 .gitignore 和内置排除。
+- `topFilesLength`：（可选，默认值：10）在代码库分析的指标摘要中显示的最大文件数（按大小排序）。
 
 **示例：**
 ```json
 {
   "directory": "/path/to/your/project",
-  "compress": true,
+  "compress": false,
   "includePatterns": "src/**/*.ts,**/*.md",
-  "ignorePatterns": "**/*.log,tmp/"
+  "ignorePatterns": "**/*.log,tmp/",
+  "topFilesLength": 10
 }
 ```
 
 ### pack_remote_repository
 
-此工具获取、克隆并将 GitHub 仓库打包成一个用于 AI 分析的整合文件。
+此工具获取、克隆并将 GitHub 仓库打包成一个用于 AI 分析的 XML 文件。它自动克隆远程仓库，分析其结构，并生成综合报告。
 
 **参数：**
-- `remote`：（必需）GitHub 仓库 URL 或用户/仓库格式（例如，yamadashy/repomix）
-- `compress`：（可选，默认值：true）是否执行智能代码提取以减少令牌计数
-- `includePatterns`：（可选）以逗号分隔的包含模式列表
-- `ignorePatterns`：（可选）以逗号分隔的忽略模式列表
+- `remote`：（必需）GitHub 仓库 URL 或用户/仓库格式（例如，"yamadashy/repomix", "https://github.com/user/repo", 或 "https://github.com/user/repo/tree/branch"）
+- `compress`：（可选，默认值：false）启用 Tree-sitter 压缩以提取基本代码签名和结构，同时删除实现细节。在保持语义含义的同时减少约 70% 的令牌使用量。由于 grep_repomix_output 允许增量内容检索，通常不需要。仅在您特别需要大型仓库的整个代码库内容时使用。
+- `includePatterns`：（可选）使用 fast-glob 模式指定要包含的文件。多个模式可以用逗号分隔（例如，"**/*.{js,ts}", "src/**,docs/**"）。只有匹配的文件会被处理。
+- `ignorePatterns`：（可选）使用 fast-glob 模式指定要排除的其他文件。多个模式可以用逗号分隔（例如，"test/**,*.spec.js", "node_modules/**,dist/**"）。这些模式补充 .gitignore 和内置排除。
+- `topFilesLength`：（可选，默认值：10）在代码库分析的指标摘要中显示的最大文件数（按大小排序）。
 
 **示例：**
 ```json
 {
   "remote": "yamadashy/repomix",
-  "compress": true,
+  "compress": false,
   "includePatterns": "src/**/*.ts,**/*.md",
-  "ignorePatterns": "**/*.log,tmp/"
+  "ignorePatterns": "**/*.log,tmp/",
+  "topFilesLength": 10
 }
 ```
 
 ### read_repomix_output
 
-此工具在无法直接访问文件的环境中读取Repomix输出文件的内容。
+此工具读取 Repomix 生成的输出文件的内容。支持对大文件进行行范围指定的部分读取。此工具专为直接文件系统访问受限的环境而设计。
 
 **参数：**
-- `outputId`：（必需）要读取的Repomix输出文件的ID
+- `outputId`：（必需）要读取的 Repomix 输出文件的 ID
+- `startLine`：（可选）起始行号（从 1 开始，包含）。如果未指定，则从开头读取。
+- `endLine`：（可选）结束行号（从 1 开始，包含）。如果未指定，则读取到末尾。
 
 **功能：**
-- 专为基于Web的环境或沙箱应用程序设计
-- 使用其ID检索先前生成的输出内容
+- 专为基于 Web 的环境或沙箱应用程序设计
+- 使用其 ID 检索先前生成的输出内容
 - 无需文件系统访问权限即可安全访问打包的代码库
+- 支持大文件的部分读取
 
 **示例：**
 ```json
 {
-  "outputId": "8f7d3b1e2a9c6054"
+  "outputId": "8f7d3b1e2a9c6054",
+  "startLine": 100,
+  "endLine": 200
+}
+```
+
+### grep_repomix_output
+
+此工具使用 JavaScript RegExp 语法的类似 grep 的功能在 Repomix 输出文件中搜索模式。返回匹配行及其周围的可选上下文行。
+
+**参数：**
+- `outputId`：（必需）要搜索的 Repomix 输出文件的 ID
+- `pattern`：（必需）搜索模式（JavaScript RegExp 正则表达式语法）
+- `contextLines`：（可选，默认值：0）在每个匹配项前后显示的上下文行数。如果指定了 beforeLines/afterLines，则被覆盖。
+- `beforeLines`：（可选）在每个匹配项前显示的上下文行数（类似 grep -B）。优先于 contextLines。
+- `afterLines`：（可选）在每个匹配项后显示的上下文行数（类似 grep -A）。优先于 contextLines。
+- `ignoreCase`：（可选，默认值：false）执行不区分大小写的匹配
+
+**功能：**
+- 使用 JavaScript RegExp 语法进行强大的模式匹配
+- 支持上下文行以更好地理解匹配
+- 允许单独控制前/后上下文行
+- 区分大小写和不区分大小写的搜索选项
+
+**示例：**
+```json
+{
+  "outputId": "8f7d3b1e2a9c6054",
+  "pattern": "function\\s+\\w+\\(",
+  "contextLines": 3,
+  "ignoreCase": false
 }
 ```
 
 ### file_system_read_file 和 file_system_read_directory
 
-Repomix的MCP服务器提供了两个文件系统工具，允许AI助手安全地与本地文件系统交互：
+Repomix 的 MCP 服务器提供了两个文件系统工具，允许 AI 助手安全地与本地文件系统交互：
 
 1. `file_system_read_file`
-  - 使用绝对路径读取文件内容
-  - 使用[Secretlint](https://github.com/secretlint/secretlint)实现安全验证
-  - 防止访问包含敏感信息的文件
+  - 使用绝对路径从本地文件系统读取文件内容
+  - 包含内置安全验证以检测和防止访问包含敏感信息的文件
+  - 使用 [Secretlint](https://github.com/secretlint/secretlint) 实现安全验证
+  - 防止访问包含敏感信息的文件（API 密钥、密码、机密）
+  - 验证绝对路径以防止目录遍历攻击
   - 对无效路径和安全问题返回清晰的错误消息
 
 2. `file_system_read_directory`
-  - 使用绝对路径列出目录内容
-  - 使用清晰的指示符（`[FILE]`或`[DIR]`）显示文件和目录
+  - 使用绝对路径列出目录的内容
+  - 返回显示文件和子目录的格式化列表，带有清晰的指示符
+  - 使用清晰的指示符（`[FILE]` 或 `[DIR]`）显示文件和目录
   - 提供安全的目录遍历和适当的错误处理
   - 验证路径并确保使用绝对路径
+  - 对探索项目结构和理解代码库组织很有用
 
 这两个工具都包含了强大的安全措施：
 - 绝对路径验证以防止目录遍历攻击
 - 权限检查以确保适当的访问权限
-- 与Secretlint集成以检测敏感信息
+- 与 Secretlint 集成以检测敏感信息
 - 清晰的错误消息以便于调试和安全意识
 
 **示例：**
@@ -185,7 +226,7 @@ const dirContent = await tools.file_system_read_directory({
 });
 ```
 
-这些工具在AI助手需要执行以下操作时特别有用：
+这些工具在 AI 助手需要执行以下操作时特别有用：
 - 分析代码库中的特定文件
 - 导航目录结构
 - 验证文件存在性和可访问性

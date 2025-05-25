@@ -63,6 +63,8 @@ describe('defaultAction', () => {
       fileTokenCounts: {},
       suspiciousFilesResults: [],
       suspiciousGitDiffResults: [],
+      processedFiles: [],
+      safeFilePaths: [],
       gitDiffTokenCount: 0,
     });
   });

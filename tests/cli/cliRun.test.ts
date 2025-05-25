@@ -103,6 +103,8 @@ describe('cliRun', () => {
         suspiciousFilesResults: [],
         gitDiffTokenCount: 0,
         suspiciousGitDiffResults: [],
+        processedFiles: [],
+        safeFilePaths: [],
       } satisfies PackResult,
     });
     vi.mocked(initAction.runInitAction).mockResolvedValue();
@@ -154,6 +156,8 @@ describe('cliRun', () => {
         suspiciousFilesResults: [],
         gitDiffTokenCount: 0,
         suspiciousGitDiffResults: [],
+        processedFiles: [],
+        safeFilePaths: [],
       } satisfies PackResult,
     });
     vi.mocked(versionAction.runVersionAction).mockResolvedValue();

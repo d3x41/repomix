@@ -91,41 +91,97 @@ En mode serveur MCP, Repomix fournit les outils suivants:
 
 ### pack_codebase
 
-Cet outil package un répertoire de code local dans un fichier consolidé pour l'analyse par IA.
+Cet outil package un répertoire de code local dans un fichier XML pour l'analyse par IA. Il analyse la structure de la base de code, extrait le contenu de code pertinent et génère un rapport complet incluant les métriques, l'arbre des fichiers et le contenu de code formaté.
 
 **Paramètres:**
 - `directory`: (Requis) Chemin absolu vers le répertoire à packager
-- `compress`: (Optionnel, par défaut: true) Effectuer ou non l'extraction intelligente de code pour réduire le nombre de tokens
-- `includePatterns`: (Optionnel) Liste de motifs d'inclusion séparés par des virgules
-- `ignorePatterns`: (Optionnel) Liste de motifs d'exclusion séparés par des virgules
+- `compress`: (Optionnel, par défaut: false) Active la compression Tree-sitter pour extraire les signatures de code essentielles et la structure tout en supprimant les détails d'implémentation. Réduit l'utilisation de tokens d'environ 70% tout en préservant la signification sémantique. Généralement non nécessaire car grep_repomix_output permet la récupération incrémentale de contenu. Utilisez uniquement lorsque vous avez spécifiquement besoin du contenu complet de la base de code pour de gros dépôts.
+- `includePatterns`: (Optionnel) Spécifie les fichiers à inclure en utilisant des motifs fast-glob. Plusieurs motifs peuvent être séparés par des virgules (ex: "**/*.{js,ts}", "src/**,docs/**"). Seuls les fichiers correspondants seront traités.
+- `ignorePatterns`: (Optionnel) Spécifie les fichiers supplémentaires à exclure en utilisant des motifs fast-glob. Plusieurs motifs peuvent être séparés par des virgules (ex: "test/**,*.spec.js", "node_modules/**,dist/**"). Ces motifs complètent .gitignore et les exclusions intégrées.
+- `topFilesLength`: (Optionnel, par défaut: 10) Nombre de plus gros fichiers par taille à afficher dans le résumé des métriques pour l'analyse de la base de code.
 
 **Exemple:**
 ```json
 {
   "directory": "/path/to/your/project",
-  "compress": true,
+  "compress": false,
   "includePatterns": "src/**/*.ts,**/*.md",
-  "ignorePatterns": "**/*.log,tmp/"
+  "ignorePatterns": "**/*.log,tmp/",
+  "topFilesLength": 10
 }
 ```
 
 ### pack_remote_repository
 
-Cet outil récupère, clone et package un dépôt GitHub dans un fichier consolidé pour l'analyse par IA.
+Cet outil récupère, clone et package un dépôt GitHub dans un fichier XML pour l'analyse par IA. Il clone automatiquement le dépôt distant, analyse sa structure et génère un rapport complet.
 
 **Paramètres:**
-- `remote`: (Requis) URL du dépôt GitHub ou format utilisateur/dépôt (par exemple, yamadashy/repomix)
-- `compress`: (Optionnel, par défaut: true) Effectuer ou non l'extraction intelligente de code pour réduire le nombre de tokens
-- `includePatterns`: (Optionnel) Liste de motifs d'inclusion séparés par des virgules
-- `ignorePatterns`: (Optionnel) Liste de motifs d'exclusion séparés par des virgules
+- `remote`: (Requis) URL du dépôt GitHub ou format utilisateur/dépôt (ex: "yamadashy/repomix", "https://github.com/user/repo", ou "https://github.com/user/repo/tree/branch")
+- `compress`: (Optionnel, par défaut: false) Active la compression Tree-sitter pour extraire les signatures de code essentielles et la structure tout en supprimant les détails d'implémentation. Réduit l'utilisation de tokens d'environ 70% tout en préservant la signification sémantique. Généralement non nécessaire car grep_repomix_output permet la récupération incrémentale de contenu. Utilisez uniquement lorsque vous avez spécifiquement besoin du contenu complet de la base de code pour de gros dépôts.
+- `includePatterns`: (Optionnel) Spécifie les fichiers à inclure en utilisant des motifs fast-glob. Plusieurs motifs peuvent être séparés par des virgules (ex: "**/*.{js,ts}", "src/**,docs/**"). Seuls les fichiers correspondants seront traités.
+- `ignorePatterns`: (Optionnel) Spécifie les fichiers supplémentaires à exclure en utilisant des motifs fast-glob. Plusieurs motifs peuvent être séparés par des virgules (ex: "test/**,*.spec.js", "node_modules/**,dist/**"). Ces motifs complètent .gitignore et les exclusions intégrées.
+- `topFilesLength`: (Optionnel, par défaut: 10) Nombre de plus gros fichiers par taille à afficher dans le résumé des métriques pour l'analyse de la base de code.
 
 **Exemple:**
 ```json
 {
   "remote": "yamadashy/repomix",
-  "compress": true,
+  "compress": false,
   "includePatterns": "src/**/*.ts,**/*.md",
-  "ignorePatterns": "**/*.log,tmp/"
+  "ignorePatterns": "**/*.log,tmp/",
+  "topFilesLength": 10
+}
+```
+
+### read_repomix_output
+
+Cet outil lit le contenu d'un fichier de sortie généré par Repomix. Il prend en charge la lecture partielle avec spécification de plage de lignes pour les gros fichiers. Cet outil est conçu pour les environnements où l'accès direct au système de fichiers est limité.
+
+**Paramètres:**
+- `outputId`: (Requis) ID du fichier de sortie Repomix à lire
+- `startLine`: (Optionnel) Numéro de ligne de début (basé sur 1, inclusif). Si non spécifié, lit depuis le début.
+- `endLine`: (Optionnel) Numéro de ligne de fin (basé sur 1, inclusif). Si non spécifié, lit jusqu'à la fin.
+
+**Fonctionnalités:**
+- Conçu spécifiquement pour les environnements basés sur le web ou les applications en bac à sable
+- Récupère le contenu des sorties générées précédemment en utilisant leur ID
+- Fournit un accès sécurisé à la base de code packagée sans nécessiter d'accès au système de fichiers
+- Prend en charge la lecture partielle pour les gros fichiers
+
+**Exemple:**
+```json
+{
+  "outputId": "8f7d3b1e2a9c6054",
+  "startLine": 100,
+  "endLine": 200
+}
+```
+
+### grep_repomix_output
+
+Cet outil recherche des motifs dans un fichier de sortie Repomix en utilisant une fonctionnalité similaire à grep avec la syntaxe JavaScript RegExp. Il retourne les lignes correspondantes avec des lignes de contexte optionnelles autour des correspondances.
+
+**Paramètres:**
+- `outputId`: (Requis) ID du fichier de sortie Repomix à rechercher
+- `pattern`: (Requis) Motif de recherche (syntaxe d'expression régulière JavaScript RegExp)
+- `contextLines`: (Optionnel, par défaut: 0) Nombre de lignes de contexte à afficher avant et après chaque correspondance. Remplacé par beforeLines/afterLines si spécifié.
+- `beforeLines`: (Optionnel) Nombre de lignes de contexte à afficher avant chaque correspondance (comme grep -B). Priorité sur contextLines.
+- `afterLines`: (Optionnel) Nombre de lignes de contexte à afficher après chaque correspondance (comme grep -A). Priorité sur contextLines.
+- `ignoreCase`: (Optionnel, par défaut: false) Effectue une correspondance insensible à la casse
+
+**Fonctionnalités:**
+- Utilise la syntaxe JavaScript RegExp pour une correspondance de motifs puissante
+- Prend en charge les lignes de contexte pour une meilleure compréhension des correspondances
+- Permet un contrôle séparé des lignes de contexte avant/après
+- Options de recherche sensible et insensible à la casse
+
+**Exemple:**
+```json
+{
+  "outputId": "8f7d3b1e2a9c6054",
+  "pattern": "function\\s+\\w+\\(",
+  "contextLines": 3,
+  "ignoreCase": false
 }
 ```
 
@@ -134,16 +190,20 @@ Cet outil récupère, clone et package un dépôt GitHub dans un fichier consoli
 Le serveur MCP de Repomix fournit deux outils système de fichiers qui permettent aux assistants IA d'interagir en toute sécurité avec le système de fichiers local:
 
 1. `file_system_read_file`
-  - Lit le contenu des fichiers en utilisant des chemins absolus
+  - Lit le contenu des fichiers du système de fichiers local en utilisant des chemins absolus
+  - Inclut une validation de sécurité intégrée pour détecter et prévenir l'accès aux fichiers contenant des informations sensibles
   - Implémente la validation de sécurité avec [Secretlint](https://github.com/secretlint/secretlint)
-  - Empêche l'accès aux fichiers contenant des informations sensibles
-  - Renvoie du contenu formaté avec des messages d'erreur clairs pour les chemins invalides ou les problèmes de sécurité
+  - Empêche l'accès aux fichiers contenant des informations sensibles (clés API, mots de passe, secrets)
+  - Valide les chemins absolus pour prévenir les attaques par traversée de répertoire
+  - Renvoie des messages d'erreur clairs pour les chemins invalides et les problèmes de sécurité
 
 2. `file_system_read_directory`
-  - Liste le contenu des répertoires en utilisant des chemins absolus
+  - Liste le contenu d'un répertoire en utilisant un chemin absolu
+  - Renvoie une liste formatée montrant les fichiers et sous-répertoires avec des indicateurs clairs
   - Affiche les fichiers et répertoires avec des indicateurs clairs (`[FILE]` ou `[DIR]`)
   - Fournit une traversée sécurisée des répertoires avec une gestion appropriée des erreurs
   - Valide les chemins et s'assure qu'ils sont absolus
+  - Utile pour explorer la structure du projet et comprendre l'organisation de la base de code
 
 Les deux outils intègrent des mesures de sécurité robustes:
 - Validation des chemins absolus pour prévenir les attaques par traversée de répertoire
@@ -157,6 +217,7 @@ Les deux outils intègrent des mesures de sécurité robustes:
 const fileContent = await tools.file_system_read_file({
   path: '/absolute/path/to/file.txt'
 });
+
 // Liste du contenu d'un répertoire
 const dirContent = await tools.file_system_read_directory({
   path: '/absolute/path/to/directory'

@@ -90,6 +90,8 @@ export const execLsRemote = async (
     execFileAsync,
   },
 ): Promise<string> => {
+  validateGitUrl(url);
+
   try {
     const result = await deps.execFileAsync('git', ['ls-remote', '--heads', '--tags', url]);
     return result.stdout || '';

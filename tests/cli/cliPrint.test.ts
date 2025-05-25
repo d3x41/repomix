@@ -41,6 +41,8 @@ describe('cliPrint', () => {
         fileTokenCounts: { 'file1.txt': 50 },
         suspiciousFilesResults: suspiciousFiles,
         suspiciousGitDiffResults: [],
+        processedFiles: [],
+        safeFilePaths: [],
         gitDiffTokenCount: 0,
       };
 
@@ -62,6 +64,8 @@ describe('cliPrint', () => {
         fileTokenCounts: { 'file1.txt': 50 },
         suspiciousFilesResults: [],
         suspiciousGitDiffResults: [],
+        processedFiles: [],
+        safeFilePaths: [],
         gitDiffTokenCount: 0,
       };
 

@@ -3,6 +3,8 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import { generateFileTree, generateTreeString } from '../../core/file/fileTreeGenerate.js';
+import type { ProcessedFile } from '../../core/file/fileTypes.js';
 import { logger } from '../../shared/logger.js';
 
 // Map to store generated output files
@@ -24,6 +26,8 @@ export interface McpToolMetrics {
   totalTokens: number;
   fileCharCounts: Record<string, number>;
   fileTokenCounts: Record<string, number>;
+  processedFiles: ProcessedFile[];
+  safeFilePaths: string[];
 }
 
 export interface McpToolContext {
@@ -56,15 +60,19 @@ export const generateOutputId = (): string => {
 /**
  * Creates a result object with metrics information for MCP tools
  */
-export const formatToolResponse = (
+export const formatToolResponse = async (
   context: McpToolContext,
   metrics: McpToolMetrics,
   outputFilePath: string,
   topFilesLen = 5,
-): CallToolResult => {
+): Promise<CallToolResult> => {
   // Generate output ID and register the file
   const outputId = generateOutputId();
   registerOutputFile(outputId, outputFilePath);
+
+  // Calculate total lines from the output file
+  const outputContent = await fs.readFile(outputFilePath, 'utf8');
+  const totalLines = outputContent.split('\n').length;
 
   // Get top files by character count
   const topFiles = Object.entries(metrics.fileCharCounts)
@@ -75,6 +83,9 @@ export const formatToolResponse = (
     }))
     .sort((a, b) => b.charCount - a.charCount)
     .slice(0, topFilesLen);
+
+  // Directory Structure
+  const directoryStructure = generateTreeString(metrics.safeFilePaths, []);
 
   // Create JSON string with all the metrics information
   const jsonResult = JSON.stringify(
@@ -87,6 +98,7 @@ export const formatToolResponse = (
         totalFiles: metrics.totalFiles,
         totalCharacters: metrics.totalCharacters,
         totalTokens: metrics.totalTokens,
+        totalLines,
         topFiles,
       },
     },
@@ -106,11 +118,50 @@ export const formatToolResponse = (
       },
       {
         type: 'text',
+        text: `Directory Structure\n\n${directoryStructure}`,
+      },
+      {
+        type: 'text',
         text: `For environments with direct file system access, you can read the file directly using path: ${outputFilePath}`,
       },
       {
         type: 'text',
         text: `For environments without direct file access (e.g., web browsers or sandboxed apps), use the \`read_repomix_output\` tool with this outputId: ${outputId} to access the packed codebase contents.`,
+      },
+      {
+        type: 'text',
+        text: `The output retrieved with \`read_repomix_output\` has the following structure:
+
+\`\`\`xml
+This file is a merged representation of the entire codebase, combining all repository files into a single document.
+
+<file_summary>
+  (Metadata and usage AI instructions)
+</file_summary>
+
+<directory_structure>
+src/
+cli/
+cliOutput.ts
+index.ts
+
+(...remaining directories)
+</directory_structure>
+
+<files>
+<file path="src/index.js">
+  // File contents here
+</file>
+
+(...remaining files)
+</files>
+
+<instruction>
+(Custom instructions from output.instructionFilePath)
+</instruction>
+\`\`\`
+
+You can use grep with \`path="<file-path>"\` to locate specific files within the output.`,
       },
     ],
   };

@@ -1,6 +1,6 @@
 import nodepath from 'node:path';
 
-interface TreeNode {
+export interface TreeNode {
   name: string;
   children: TreeNode[];
   isDirectory: boolean;

@@ -43,6 +43,8 @@ describe('remoteAction functions', () => {
                 fileTokenCounts: {},
                 suspiciousFilesResults: [],
                 suspiciousGitDiffResults: [],
+                processedFiles: [],
+                safeFilePaths: [],
                 gitDiffTokenCount: 0,
               },
               config: createMockConfig(),
